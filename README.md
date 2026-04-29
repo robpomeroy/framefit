@@ -1,5 +1,7 @@
 # FrameFit
 
+![FrameFit Banner](images/FrameFit_banner.jpg)
+
 Digital photo frames are low powered devices. If you do not need to zoom into
 photos on the frame, it makes sense to prepare them to fit the photo frame's
 resolution. This way, the photo frame can display them more efficiently without
@@ -10,6 +12,16 @@ photos for a digital photo frame (such as those made by Aura, Lexar/Pexar,
 PhotoSpring, and others). It scans a folder (and all subfolders), converts
 supported image types to JPEG, and resizes each photo to fit your frame
 resolution while keeping the original proportions (no stretching or squashing).
+
+## Quick Start
+
+Choose one path:
+
+- Use binaries if you want the fastest setup and do not want to install Python.
+  Download from [GitHub Releases](../../releases), then run the binary from a
+  terminal.
+- Use Python (3.10+) if you want to run from source, modify the code, or
+  contribute. Set up a virtual environment and run `framefit.py`.
 
 ## What This Program Does
 
@@ -31,14 +43,25 @@ resolution while keeping the original proportions (no stretching or squashing).
 - Original (non-JPEG) files are removed after successful conversion.
 - Use `--dry-run` first to preview changes safely.
 
-## Requirements
-
-- Windows
-- Python 3.14
-
 ## Installation
 
-Open PowerShell in this folder (`framefit`) and run:
+### Binaries
+
+You can download binary files from the [GitHub Releases](../../releases) page.
+These are ready-to-run executables for Windows, macOS, and Linux. No
+installation or Python setup is required. Just download the binary for your
+platform and run it directly at a command line.
+
+Example binary names:
+
+- `framefit-windows-x64.exe`
+- `framefit-macos-x64`
+- `framefit-linux-x64`
+
+### Python - Windows
+
+You will need Python installed. Open PowerShell in this folder (`framefit`) and
+run:
 
 ```powershell
 Unblock-File -Path .\framefit.py
@@ -47,13 +70,58 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
+### Python - macOS/Linux
+
+Open a terminal in this folder (`framefit`) and run:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
 ## Basic Usage
 
-Having activated the virtual environment with `.\venv\Scripts\activate` (for
-this and all other instances below), run:
+### Command Line (Binary, no Python)
+
+After downloading the binary from [GitHub Releases](../../releases):
+
+Windows (PowerShell):
+
+```powershell
+.\framefit-windows-x64.exe "C:\Path\To\Your\Photos"
+```
+
+macOS/Linux (Terminal):
+
+```bash
+./framefit-macos-x64 "/path/to/your/photos"
+# or
+./framefit-linux-x64 "/path/to/your/photos"
+```
+
+If needed on macOS/Linux, first make the binary executable:
+
+```bash
+chmod +x ./framefit-macos-x64
+# or
+chmod +x ./framefit-linux-x64
+```
+
+### Command Line (Python)
+
+Having activated the virtual environment:
+
+Windows (PowerShell):
 
 ```powershell
 python framefit.py "C:\Path\To\Your\Photos"
+```
+
+macOS/Linux (Terminal):
+
+```bash
+python3 framefit.py "/path/to/your/photos"
 ```
 
 Default target resolution is:
@@ -65,6 +133,14 @@ Default target resolution is:
 
 Use dry run mode to see what would happen without creating or deleting files:
 
+Binary:
+
+```powershell
+.\framefit-windows-x64.exe "C:\Path\To\Your\Photos" --dry-run
+```
+
+Python:
+
 ```powershell
 python framefit.py "C:\Path\To\Your\Photos" --dry-run
 ```
@@ -72,6 +148,14 @@ python framefit.py "C:\Path\To\Your\Photos" --dry-run
 ## Custom Resolution
 
 Example for 1920x1080:
+
+Binary:
+
+```powershell
+.\framefit-windows-x64.exe "C:\Path\To\Your\Photos" --width 1920 --height 1080
+```
+
+Python:
 
 ```powershell
 python framefit.py "C:\Path\To\Your\Photos" --width 1920 --height 1080
@@ -112,12 +196,6 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 - If a file is corrupted or unreadable, the tool logs an error and continues
   with the next file.
-
-## Pre-built Binaries
-
-Ready-to-run executables for Windows, macOS, and Linux are attached to each
-[GitHub Release](../../releases). Download the binary for your platform and
-run it directly — no Python installation required.
 
 ## Contributing
 

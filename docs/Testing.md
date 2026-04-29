@@ -51,7 +51,7 @@ pytest --cov=framefit --cov-report=term-missing
 - Integration tests create temporary image files and clean them up
   automatically.
 - Tests are designed for Windows but are generally cross-platform.
-- Python 3.14 is required.
+- Python 3.10+ is required. (The CI/CD pipeline uses 3.14.)
 
 ## Continuous Integration
 

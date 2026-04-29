@@ -37,6 +37,7 @@ import argparse
 import logging
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import piexif
@@ -125,6 +126,7 @@ def process_image(
     is_jpeg_input = source_path.suffix.lower() in {".jpg", ".jpeg"}
     output_path = source_path if is_jpeg_input else source_path.with_suffix(
         ".jpg")
+    temp_output_path: Path | None = None
 
     try:
         with Image.open(source_path) as img:
@@ -203,7 +205,28 @@ def process_image(
             if exif_bytes:
                 save_kwargs["exif"] = exif_bytes
 
-            img.save(output_path, **save_kwargs)
+            if source_path.resolve() == output_path.resolve():
+                # For in-place updates, write to a temp file first, then
+                # atomically replace the original after the source handle
+                # has closed (important on Windows).
+                fd, tmp_name = tempfile.mkstemp(
+                    prefix=f".{source_path.stem}.",
+                    suffix=source_path.suffix,
+                    dir=source_path.parent,
+                )
+                os.close(fd)
+                temp_output_path = Path(tmp_name)
+                try:
+                    img.save(temp_output_path, **save_kwargs)
+                except Exception:
+                    temp_output_path.unlink(missing_ok=True)
+                    raise
+            else:
+                img.save(output_path, **save_kwargs)
+
+        if temp_output_path is not None:
+            os.replace(temp_output_path, source_path)
+            temp_output_path = None
 
         # Delete original only when it differs from the output file.
         # On Windows, Path.resolve() normalises case, so .JPG and .jpg
@@ -219,6 +242,8 @@ def process_image(
         return True
 
     except Exception as exc:
+        if temp_output_path is not None:
+            temp_output_path.unlink(missing_ok=True)
         logger.error("Failed to process %s: %s", source_path, exc)
         return False
 
