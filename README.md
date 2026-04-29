@@ -33,7 +33,7 @@ proportions.
 
 ## Installation
 
-Open PowerShell in this folder (`pexar-resizer`) and run:
+Open PowerShell in this folder (`framefit`) and run:
 
 ```powershell
 Unblock-File -Path .\framefit.py

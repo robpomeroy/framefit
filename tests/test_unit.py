@@ -24,6 +24,11 @@ def test_calculate_new_size_exact_match():
     assert (new_w, new_h) == (2000, 1200)
 
 
+def test_calculate_new_size_clamps_min_dimension_to_one():
+    new_w, new_h = calculate_new_size(50000, 1, 2000, 1200)
+    assert (new_w, new_h) == (2000, 1)
+
+
 def test_load_exif_bytes_none_when_missing():
     img = Image.new("RGB", (64, 64), (255, 0, 0))
     assert _load_exif_bytes(img) is None

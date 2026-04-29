@@ -34,6 +34,7 @@ Setup (one-time):
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -83,7 +84,9 @@ def calculate_new_size(
     within target_w x target_h.  Both upscaling and downscaling are applied.
     """
     scale = min(target_w / orig_w, target_h / orig_h)
-    return round(orig_w * scale), round(orig_h * scale)
+    new_w = max(1, min(target_w, round(orig_w * scale)))
+    new_h = max(1, min(target_h, round(orig_h * scale)))
+    return new_w, new_h
 
 
 def _load_exif_bytes(img: Image.Image) -> bytes | None:
@@ -118,10 +121,15 @@ def process_image(
 
     Returns True on success, False on failure.
     """
-    output_path = source_path.with_suffix(".jpg")
+    is_jpeg_input = source_path.suffix.lower() in {".jpg", ".jpeg"}
+    output_path = source_path if is_jpeg_input else source_path.with_suffix(
+        ".jpg")
 
     try:
         with Image.open(source_path) as img:
+            is_progressive = bool(img.info.get(
+                "progressive") or img.info.get("progression"))
+
             # Physically apply any EXIF rotation before we do anything else.
             img = ImageOps.exif_transpose(img)
 
@@ -130,6 +138,20 @@ def process_image(
             orig_w, orig_h = img.size
             new_w, new_h = calculate_new_size(
                 orig_w, orig_h, target_w, target_h)
+
+            should_skip_conversion = (
+                is_jpeg_input
+                and not is_progressive
+                and (new_w, new_h) == (orig_w, orig_h)
+            )
+
+            if should_skip_conversion:
+                logger.info(
+                    "Skipping: %s already matches target size and is a "
+                    "non-progressive JPEG.",
+                    source_path.name,
+                )
+                return True
 
             if dry_run:
                 if source_path.resolve() != output_path.resolve():
@@ -239,27 +261,40 @@ def main() -> None:
     processed = 0
     skipped = 0
 
-    for file_path in sorted(root.rglob("*")):
-        if not file_path.is_file():
-            continue
-        if file_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
-            continue
-        # Guard against symlinks that resolve to a path outside the root
-        # directory (path traversal via symlink).
-        try:
-            file_path.resolve().relative_to(root_resolved)
-        except ValueError:
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        current_dir = Path(dirpath)
+
+        # Explicitly prune symlink dirs so recursion never enters them.
+        # This prevents linked paths outside root and symlink loops.
+        symlink_dirs = [d for d in dirnames if (current_dir / d).is_symlink()]
+        for symlink_dir in symlink_dirs:
             logger.warning(
-                "Skipping %s: symlink resolves outside root directory.",
-                file_path,
+                "Skipping symlink directory: %s",
+                current_dir / symlink_dir,
             )
             skipped += 1
-            continue
+        dirnames[:] = [d for d in dirnames if d not in symlink_dirs]
 
-        if process_image(file_path, args.width, args.height, args.dry_run):
-            processed += 1
-        else:
-            skipped += 1
+        for filename in sorted(filenames):
+            file_path = current_dir / filename
+            if file_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+                continue
+            # Guard against symlink files that resolve outside the root
+            # directory (path traversal via symlink).
+            try:
+                file_path.resolve().relative_to(root_resolved)
+            except ValueError:
+                logger.warning(
+                    "Skipping %s: symlink resolves outside root directory.",
+                    file_path,
+                )
+                skipped += 1
+                continue
+
+            if process_image(file_path, args.width, args.height, args.dry_run):
+                processed += 1
+            else:
+                skipped += 1
 
     logger.info(
         "Done. Processed: %d  |  Errors/skipped: %d", processed, skipped

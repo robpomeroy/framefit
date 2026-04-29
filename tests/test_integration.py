@@ -36,6 +36,24 @@ def test_process_image_updates_jpg_in_place(make_image):
         assert result.height <= 1200
 
 
+@pytest.mark.parametrize("name", ["sample.jpeg", "sample.JPG"])
+def test_process_image_updates_jpeg_variants_in_place(make_image, name):
+    source = make_image(name, size=(2500, 1600), mode="RGB")
+
+    ok = process_image(source, 2000, 1200)
+
+    assert ok is True
+    assert source.exists()
+    if source.suffix.lower() == ".jpeg":
+        assert not source.with_suffix(".jpg").exists()
+    else:
+        assert source.with_suffix(".jpg").resolve() == source.resolve()
+    with Image.open(source) as result:
+        assert result.format == "JPEG"
+        assert result.width <= 2000
+        assert result.height <= 1200
+
+
 def test_process_image_handles_rgba_input(make_image):
     source = make_image("alpha.png", size=(900, 900),
                         mode="RGBA", color=(1, 2, 3, 120))
@@ -57,6 +75,17 @@ def test_process_image_dry_run_no_write_no_delete(make_image):
     assert ok is True
     assert source.exists()
     assert not output.exists()
+
+
+def test_process_image_skips_jpeg_when_already_correct_size(make_image):
+    source = make_image("already_ok.jpeg", size=(1600, 1200), mode="RGB")
+    original_bytes = source.read_bytes()
+
+    ok = process_image(source, 2000, 1200)
+
+    assert ok is True
+    assert source.exists()
+    assert source.read_bytes() == original_bytes
 
 
 def test_process_image_fails_cleanly_on_corrupt_file(tmp_path: Path):
@@ -121,3 +150,31 @@ def test_main_dry_run_does_not_modify_files(monkeypatch, make_image):
 
     assert source.exists()
     assert not source.with_suffix(".jpg").exists()
+
+
+def test_main_does_not_traverse_symlink_directories(monkeypatch, tmp_path: Path):
+    root = tmp_path / "root"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+
+    inside_png = root / "inside.png"
+    outside_png = outside / "outside.png"
+    Image.new("RGB", (300, 200), (20, 30, 40)).save(inside_png, format="PNG")
+    Image.new("RGB", (300, 200), (90, 60, 30)).save(outside_png, format="PNG")
+
+    symlink_dir = root / "linked_outside"
+    try:
+        symlink_dir.symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("Creating symlink directories is not permitted here")
+
+    monkeypatch.setattr(sys, "argv", ["framefit.py", str(root)])
+    main()
+
+    assert not inside_png.exists()
+    assert inside_png.with_suffix(".jpg").exists()
+
+    # If symlinked directories were traversed, this file would be converted.
+    assert outside_png.exists()
+    assert not outside_png.with_suffix(".jpg").exists()
