@@ -44,10 +44,11 @@ def test_process_image_updates_jpeg_variants_in_place(make_image, name):
 
     assert ok is True
     assert source.exists()
-    if source.suffix.lower() == ".jpeg":
-        assert not source.with_suffix(".jpg").exists()
+    lowercase_variant = source.with_suffix(".jpg")
+    if lowercase_variant.exists():
+        assert lowercase_variant.samefile(source)
     else:
-        assert source.with_suffix(".jpg").resolve() == source.resolve()
+        assert source.suffix.lower() in {".jpeg", ".jpg"}
     with Image.open(source) as result:
         assert result.format == "JPEG"
         assert result.width <= 2000
@@ -86,6 +87,25 @@ def test_process_image_skips_jpeg_when_already_correct_size(make_image):
     assert ok is True
     assert source.exists()
     assert source.read_bytes() == original_bytes
+
+
+def test_process_image_updates_exif_when_size_already_matches(make_exif_jpeg):
+    source = make_exif_jpeg(name="needs_orientation_fix.jpg",
+                            size=(1600, 1200))
+
+    with Image.open(source) as before:
+        before_exif = piexif.load(before.info.get("exif"))
+    assert before_exif["0th"][piexif.ImageIFD.Orientation] == 6
+
+    ok = process_image(source, 2000, 1200)
+
+    assert ok is True
+    with Image.open(source) as after:
+        after_exif_bytes = after.info.get("exif")
+    assert after_exif_bytes is not None
+    after_exif = piexif.load(after_exif_bytes)
+    orientation = after_exif.get("0th", {}).get(piexif.ImageIFD.Orientation)
+    assert orientation in (None, 1)
 
 
 def test_process_image_fails_cleanly_on_corrupt_file(tmp_path: Path):
@@ -152,7 +172,8 @@ def test_main_dry_run_does_not_modify_files(monkeypatch, make_image):
     assert not source.with_suffix(".jpg").exists()
 
 
-def test_main_does_not_traverse_symlink_directories(monkeypatch, tmp_path: Path):
+def test_main_does_not_traverse_symlink_directories(monkeypatch,
+                                                    tmp_path: Path):
     root = tmp_path / "root"
     outside = tmp_path / "outside"
     root.mkdir()

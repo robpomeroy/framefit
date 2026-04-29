@@ -129,6 +129,20 @@ def process_image(
         with Image.open(source_path) as img:
             is_progressive = bool(img.info.get(
                 "progressive") or img.info.get("progression"))
+            orientation_needs_update = False
+            raw_exif = img.info.get("exif")
+            if is_jpeg_input and raw_exif:
+                try:
+                    original_exif = piexif.load(raw_exif)
+                    original_orientation = original_exif.get("0th", {}).get(
+                        piexif.ImageIFD.Orientation
+                    )
+                    orientation_needs_update = original_orientation not in (
+                        None,
+                        1,
+                    )
+                except Exception:
+                    orientation_needs_update = False
 
             # Physically apply any EXIF rotation before we do anything else.
             img = ImageOps.exif_transpose(img)
@@ -142,6 +156,7 @@ def process_image(
             should_skip_conversion = (
                 is_jpeg_input
                 and not is_progressive
+                and not orientation_needs_update
                 and (new_w, new_h) == (orig_w, orig_h)
             )
 

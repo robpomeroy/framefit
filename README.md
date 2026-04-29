@@ -22,8 +22,9 @@ proportions.
 
 - This tool changes files in-place AND IS THEREFORE DESTRUCTIVE. Ensure you do
   not run this tool against your originals.
-- Converted output is saved next to the original as a `.jpg` file.
-- Original files are removed after successful conversion.
+- Converted output is saved next to the original as a `.jpg` file, or overwrites
+  existing JPEGs that require conversion.
+- Original (non-JPEG) files are removed after successful conversion.
 - Use `--dry-run` first to preview changes safely.
 
 ## Requirements
