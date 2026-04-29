@@ -133,11 +133,14 @@ def test_process_image_preserves_exif_and_resets_orientation(make_exif_jpeg):
     assert orientation in (None, 1)
 
 
-def test_main_exits_for_invalid_directory(monkeypatch):
+def test_main_exits_for_invalid_directory(monkeypatch, tmp_path: Path):
+    missing_dir = tmp_path / "does_not_exist"
+    assert not missing_dir.exists()
+
     monkeypatch.setattr(
         sys,
         "argv",
-        ["framefit.py", "Z:/__this_path_should_not_exist__"],
+        ["framefit.py", str(missing_dir)],
     )
 
     with pytest.raises(SystemExit) as exc:

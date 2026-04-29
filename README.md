@@ -1,11 +1,15 @@
 # FrameFit
 
-A simple Windows-friendly tool that prepares your photos for a digital photo
-frame (Aura, Lexar/Pexar, PhotoSpring, and others).
+Digital photo frames are low powered devices. If you do not need to zoom into
+photos on the frame, it makes sense to prepare them to fit the photo frame's
+resolution. This way, the photo frame can display them more efficiently without
+needing to resize on the fly.
 
-It scans a folder (and all subfolders), converts supported image types to JPEG,
-and resizes each photo to fit your frame resolution while keeping the original
-proportions.
+FrameFit is a simple Windows-friendly tool that prepares and optimises your
+photos for a digital photo frame (such as those made by Aura, Lexar/Pexar,
+PhotoSpring, and others). It scans a folder (and all subfolders), converts
+supported image types to JPEG, and resizes each photo to fit your frame
+resolution while keeping the original proportions (no stretching or squashing).
 
 ## What This Program Does
 

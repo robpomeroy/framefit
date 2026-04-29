@@ -19,7 +19,8 @@ Behaviour:
     - Converts the result to a non-progressive JPEG (quality 95).
     - Preserves EXIF metadata where available; resets the orientation tag to 1
       after applying any rotation via exif_transpose.
-    - Saves the output as <original_name>.jpg next to the original file.
+    - Saves the output as <original_name>.jpg next to the original file or
+      replaces it, if a JPEG.
     - Deletes the original file after successful conversion (except when the
       original is already a .jpg/.jpeg, in which case it is overwritten
       in-place).
