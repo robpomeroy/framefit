@@ -29,7 +29,7 @@ proportions.
 ## Requirements
 
 - Windows
-- Python 3.10+ (3.11 or newer recommended)
+- Python 3.14
 
 ## Installation
 
@@ -107,3 +107,15 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 - If a file is corrupted or unreadable, the tool logs an error and continues
   with the next file.
+
+## Pre-built Binaries
+
+Ready-to-run executables for Windows, macOS, and Linux are attached to each
+[GitHub Release](../../releases). Download the binary for your platform and
+run it directly — no Python installation required.
+
+## Contributing
+
+Tests run automatically on GitHub Actions on every push to `main` and on every
+pull request. See [docs/Testing.md](docs/Testing.md) for how to run tests
+locally.
