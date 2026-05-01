@@ -1,0 +1,2 @@
+# This is a Windows-first project, so default to Windows line endings
+* text=auto eol=crlf
