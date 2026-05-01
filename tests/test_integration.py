@@ -5,7 +5,7 @@ import piexif
 import pytest
 from PIL import Image
 
-from framefit import main, process_image
+from framefit import __version__, main, process_image
 
 
 def test_process_image_converts_png_and_deletes_original(make_image):
@@ -200,6 +200,32 @@ def test_process_image_non_jpeg_save_failure_does_not_replace_existing_output(
     assert output.read_bytes() == original_bytes
 
 
+def test_process_image_delete_failure_still_reports_success(
+    make_image,
+    monkeypatch,
+    caplog,
+):
+    source = make_image("cannot_delete.png", size=(1200, 800), mode="RGB")
+    output = source.with_suffix(".jpg")
+
+    original_unlink = Path.unlink
+
+    def failing_unlink(self, *args, **kwargs):
+        if self == source:
+            raise PermissionError("simulated delete failure")
+        return original_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", failing_unlink)
+
+    with caplog.at_level("WARNING"):
+        ok = process_image(source, 2000, 1200)
+
+    assert ok is True
+    assert source.exists()
+    assert output.exists()
+    assert "could not delete original" in caplog.text
+
+
 def test_process_image_preserves_exif_and_resets_orientation(make_exif_jpeg):
     source = make_exif_jpeg()
 
@@ -239,6 +265,20 @@ def test_main_exits_for_invalid_dimensions(monkeypatch, tmp_path: Path):
     with pytest.raises(SystemExit) as exc:
         main()
     assert exc.value.code == 1
+
+
+def test_main_version_flag_exits_zero_and_prints_version(
+    monkeypatch,
+    capsys,
+):
+    monkeypatch.setattr(sys, "argv", ["framefit.py", "--version"])
+
+    with pytest.raises(SystemExit) as exc:
+        main()
+
+    assert exc.value.code == 0
+    out = capsys.readouterr().out
+    assert __version__ in out
 
 
 def test_main_dry_run_does_not_modify_files(monkeypatch, make_image):

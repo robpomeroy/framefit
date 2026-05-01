@@ -3,7 +3,7 @@ framefit.py — Resize and convert photos for a digital photo frame.
 
 Usage:
     python framefit.py <path> [--width WIDTH] [--height HEIGHT]
-    [--dry-run]
+    [--dry-run] [-v]
 
 Arguments:
     path            Root directory containing photos to process (searched
@@ -52,6 +52,8 @@ SUPPORTED_EXTENSIONS = {
     ".png", ".bmp", ".webp",
 }
 
+__version__ = "1.0.0"
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -81,7 +83,10 @@ logger = setup_logging()
 def _build_argument_parser() -> argparse.ArgumentParser:
     """Build and return the CLI argument parser."""
     parser = argparse.ArgumentParser(
-        description="Resize and convert photos for a digital photo frame."
+        description=(
+            "Resize and convert photos for a digital photo frame "
+            f"(version {__version__})."
+        )
     )
     parser.add_argument(
         "path",
@@ -105,6 +110,13 @@ def _build_argument_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Show what would happen without creating/deleting files.",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show program version and exit.",
     )
     return parser
 
@@ -384,9 +396,21 @@ def process_image(
         # On Windows, Path.resolve() normalises case, so .JPG and .jpg
         # pointing to the same file will compare equal.
         if not same_output_file:
-            source_path.unlink()
-            logger.info("Converted: %s  ->  %s  (%dx%d)", source_path.name,
-                        output_path.name, new_w, new_h)
+            try:
+                source_path.unlink()
+                logger.info(
+                    "Converted: %s  ->  %s  (%dx%d)",
+                    source_path.name,
+                    output_path.name,
+                    new_w,
+                    new_h,
+                )
+            except OSError as exc:
+                logger.warning(
+                    "Converted but could not delete original %s: %s",
+                    source_path,
+                    exc,
+                )
         else:
             logger.info("Updated:   %s  (%dx%d)",
                         source_path.name, new_w, new_h)
