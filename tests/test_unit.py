@@ -1,31 +1,31 @@
 import piexif
 from PIL import Image
 
-from framefit import _load_exif_bytes, calculate_new_size
+from framefit import _load_exif_bytes, _calculate_new_size
 
 
 def test_calculate_new_size_landscape_to_frame():
-    new_w, new_h = calculate_new_size(4000, 3000, 2000, 1200)
+    new_w, new_h = _calculate_new_size(4000, 3000, 2000, 1200)
     assert (new_w, new_h) == (1600, 1200)
 
 
 def test_calculate_new_size_portrait_to_frame():
-    new_w, new_h = calculate_new_size(3000, 4000, 2000, 1200)
+    new_w, new_h = _calculate_new_size(3000, 4000, 2000, 1200)
     assert (new_w, new_h) == (900, 1200)
 
 
 def test_calculate_new_size_upscales_small_image():
-    new_w, new_h = calculate_new_size(400, 300, 2000, 1200)
+    new_w, new_h = _calculate_new_size(400, 300, 2000, 1200)
     assert (new_w, new_h) == (1600, 1200)
 
 
 def test_calculate_new_size_exact_match():
-    new_w, new_h = calculate_new_size(2000, 1200, 2000, 1200)
+    new_w, new_h = _calculate_new_size(2000, 1200, 2000, 1200)
     assert (new_w, new_h) == (2000, 1200)
 
 
 def test_calculate_new_size_clamps_min_dimension_to_one():
-    new_w, new_h = calculate_new_size(50000, 1, 2000, 1200)
+    new_w, new_h = _calculate_new_size(50000, 1, 2000, 1200)
     assert (new_w, new_h) == (2000, 1)
 
 
