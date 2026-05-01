@@ -197,8 +197,21 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 - If a file is corrupted or unreadable, the tool logs an error and continues
   with the next file.
 
+## Security
+
+- This tool is designed for local use on your own machine. It does not send
+  data over the network.
+- Always ensure you have backups of your original photos before running this
+  tool, as it modifies files in-place.
+- On a directory containing many files/folders, this script may take a long time
+  to run. Use `--dry-run` first to see what would happen.
+- Since the tool runs over directories and files that you own, it does not
+  perform extensive checks for malicious files. Do not run this tool on
+  untrusted directories or files.
+
 ## Contributing
 
 Tests run automatically on GitHub Actions on every push to `main` and on every
 pull request. See [docs/Testing.md](docs/Testing.md) for how to run tests
-locally.
+locally. Pull requests are welcome for bug fixes, improvements, or new features.
+Please ensure tests pass and add new tests for any new functionality.

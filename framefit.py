@@ -343,4 +343,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.warning("Interrupted by user. Exiting gracefully.")
+        sys.exit(130)
