@@ -41,6 +41,8 @@ Choose one path:
 - Converted output is saved next to the original as a `.jpg` file, or overwrites
   existing JPEGs that require conversion.
 - Original (non-JPEG) files are removed after successful conversion.
+- JPEG outputs are written via a temporary file and atomically moved into
+  place, which helps prevent partially-written output files if a write fails.
 - Use `--dry-run` first to preview changes safely.
 
 ## Installation

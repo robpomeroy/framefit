@@ -119,6 +119,58 @@ def test_process_image_fails_cleanly_on_corrupt_file(tmp_path: Path):
     assert not source.with_suffix(".jpg").exists()
 
 
+def test_process_image_non_jpeg_save_failure_leaves_no_output(
+    make_image,
+    monkeypatch,
+):
+    source = make_image("save_fail.png", size=(1200, 800), mode="RGB")
+    output = source.with_suffix(".jpg")
+
+    original_save = Image.Image.save
+
+    def failing_save(self, fp, *args, **kwargs):
+        if isinstance(fp, (str, Path)) and str(fp).endswith(".jpg"):
+            with open(fp, "wb") as handle:
+                handle.write(b"partial")
+            raise OSError("simulated write failure")
+        return original_save(self, fp, *args, **kwargs)
+
+    monkeypatch.setattr(Image.Image, "save", failing_save)
+
+    ok = process_image(source, 2000, 1200)
+
+    assert ok is False
+    assert source.exists()
+    assert not output.exists()
+
+
+def test_process_image_non_jpeg_save_failure_does_not_replace_existing_output(
+    make_image,
+    monkeypatch,
+):
+    source = make_image("keep_existing.png", size=(1200, 800), mode="RGB")
+    output = make_image("keep_existing.jpg", size=(640, 480), mode="RGB")
+    original_bytes = output.read_bytes()
+
+    original_save = Image.Image.save
+
+    def failing_save(self, fp, *args, **kwargs):
+        if isinstance(fp, (str, Path)) and str(fp).endswith(".jpg"):
+            with open(fp, "wb") as handle:
+                handle.write(b"partial")
+            raise OSError("simulated write failure")
+        return original_save(self, fp, *args, **kwargs)
+
+    monkeypatch.setattr(Image.Image, "save", failing_save)
+
+    ok = process_image(source, 2000, 1200)
+
+    assert ok is False
+    assert source.exists()
+    assert output.exists()
+    assert output.read_bytes() == original_bytes
+
+
 def test_process_image_preserves_exif_and_resets_orientation(make_exif_jpeg):
     source = make_exif_jpeg()
 

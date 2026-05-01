@@ -126,6 +126,7 @@ def process_image(
     is_jpeg_input = source_path.suffix.lower() in {".jpg", ".jpeg"}
     output_path = source_path if is_jpeg_input else source_path.with_suffix(
         ".jpg")
+    same_output_file = source_path.resolve() == output_path.resolve()
     temp_output_path: Path | None = None
 
     try:
@@ -172,7 +173,7 @@ def process_image(
                 return True
 
             if dry_run:
-                if source_path.resolve() != output_path.resolve():
+                if not same_output_file:
                     logger.info(
                         "[DRY RUN] Would convert: %s  ->  %s  (%dx%d) and "
                         "delete original",
@@ -190,7 +191,10 @@ def process_image(
                     )
                 return True
 
-            img = img.resize((new_w, new_h), Image.LANCZOS)
+            img = img.resize(
+                (new_w, new_h),
+                resample=Image.Resampling.LANCZOS,
+            )
 
             # JPEG requires RGB; convert from RGBA, palette, grayscale, etc.
             if img.mode != "RGB":
@@ -205,33 +209,31 @@ def process_image(
             if exif_bytes:
                 save_kwargs["exif"] = exif_bytes
 
-            if source_path.resolve() == output_path.resolve():
-                # For in-place updates, write to a temp file first, then
-                # atomically replace the original after the source handle
-                # has closed (important on Windows).
-                fd, tmp_name = tempfile.mkstemp(
-                    prefix=f".{source_path.stem}.",
-                    suffix=source_path.suffix,
-                    dir=source_path.parent,
-                )
-                os.close(fd)
-                temp_output_path = Path(tmp_name)
-                try:
-                    img.save(temp_output_path, **save_kwargs)
-                except Exception:
-                    temp_output_path.unlink(missing_ok=True)
-                    raise
-            else:
-                img.save(output_path, **save_kwargs)
+            # Always write to a temp file first, then atomically replace
+            # the destination to avoid leaving partially-written JPEGs.
+            final_path = source_path if same_output_file else output_path
+            fd, tmp_name = tempfile.mkstemp(
+                prefix=f".{final_path.stem}.",
+                suffix=final_path.suffix,
+                dir=final_path.parent,
+            )
+            os.close(fd)
+            temp_output_path = Path(tmp_name)
+            try:
+                img.save(temp_output_path, **save_kwargs)
+            except Exception:
+                temp_output_path.unlink(missing_ok=True)
+                raise
 
         if temp_output_path is not None:
-            os.replace(temp_output_path, source_path)
+            final_path = source_path if same_output_file else output_path
+            os.replace(temp_output_path, final_path)
             temp_output_path = None
 
         # Delete original only when it differs from the output file.
         # On Windows, Path.resolve() normalises case, so .JPG and .jpg
         # pointing to the same file will compare equal.
-        if source_path.resolve() != output_path.resolve():
+        if not same_output_file:
             source_path.unlink()
             logger.info("Converted: %s  →  %s  (%dx%d)", source_path.name,
                         output_path.name, new_w, new_h)
