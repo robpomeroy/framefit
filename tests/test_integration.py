@@ -89,6 +89,35 @@ def test_process_image_skips_jpeg_when_already_correct_size(make_image):
     assert source.read_bytes() == original_bytes
 
 
+def test_process_image_reencodes_progressive_without_resizing(
+    tmp_path: Path,
+    monkeypatch,
+):
+    source = tmp_path / "progressive.jpg"
+    Image.new("RGB", (1600, 1200), (30, 90, 150)).save(
+        source,
+        format="JPEG",
+        progressive=True,
+    )
+
+    original_resize = Image.Image.resize
+
+    def fail_if_resize_called(self, size, *args, **kwargs):
+        raise AssertionError("resize should not be called for unchanged size")
+
+    monkeypatch.setattr(Image.Image, "resize", fail_if_resize_called)
+    ok = process_image(source, 2000, 1200)
+    monkeypatch.setattr(Image.Image, "resize", original_resize)
+
+    assert ok is True
+    assert source.exists()
+    with Image.open(source) as result:
+        assert result.format == "JPEG"
+        assert not bool(
+            result.info.get("progressive") or result.info.get("progression")
+        )
+
+
 def test_process_image_updates_exif_when_size_already_matches(make_exif_jpeg):
     source = make_exif_jpeg(name="needs_orientation_fix.jpg",
                             size=(1600, 1200))

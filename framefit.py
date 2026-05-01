@@ -356,10 +356,11 @@ def process_image(
                 )
                 return True
 
-            img = img.resize(
-                (new_w, new_h),
-                resample=Image.Resampling.LANCZOS,
-            )
+            if (new_w, new_h) != (orig_w, orig_h):
+                img = img.resize(
+                    (new_w, new_h),
+                    resample=Image.Resampling.LANCZOS,
+                )
 
             # JPEG requires RGB; convert from RGBA, palette, grayscale, etc.
             if img.mode != "RGB":
